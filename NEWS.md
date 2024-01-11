@@ -1,3 +1,24 @@
+# RITCH 0.1.24
+
+* fix printf warnings about wrong argument type
+
+# RITCH 0.1.23
+
+* fix compilation warning and limit test cases to two cores (CRAN...)
+
+# RITCH 0.1.22
+
+* fix CRAN release by shorten example runtimes
+
+# RITCH 0.1.21
+
+* fix long running tasks in read functions
+
+# RITCH 0.1.20
+
+* fix bug where tests would fail on some platforms where files are written and not cleaned up
+* CRAN release
+
 # RITCH 0.1.19
 
 * fix bug in tests on some platforms

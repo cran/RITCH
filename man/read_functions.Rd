@@ -36,7 +36,7 @@ read_itch(
   quiet = FALSE,
   add_meta = TRUE,
   force_gunzip = FALSE,
-  force_cleanup = FALSE
+  force_cleanup = TRUE
 )
 
 read_system_events(file, ..., add_descriptions = FALSE)
@@ -126,7 +126,9 @@ if you have a large amount of RAM, 1e9 (1GB) might be faster}
 \item{force_gunzip}{only applies if the input file is a gz-archive and a file with the same (gunzipped) name already exists.
 if set to TRUE, the existing file is overwritten. Default value is FALSE}
 
-\item{force_cleanup}{only applies if the input file is a gz-archive If force_cleanup=TRUE, the gunzipped raw file will be deleted afterwards.}
+\item{force_cleanup}{only applies if the input file is a gz-archive.
+If force_cleanup=TRUE, the gunzipped raw file will be deleted afterwards.
+Only applies when the gunzipped raw file did not exist before.}
 
 \item{...}{Additional arguments passed to \code{read_itch}}
 
@@ -251,33 +253,32 @@ well:
 }
 }
 \examples{
+\dontshow{
+data.table::setDTthreads(2)
+}
 file <- system.file("extdata", "ex20101224.TEST_ITCH_50", package = "RITCH")
-od <- read_orders(file)
-tr <- read_trades(file)
-md <- read_modifications(file)
+od <- read_orders(file, quiet = FALSE) # note quiet = FALSE is the default
+tr <- read_trades(file, quiet = TRUE)
 
 ## Alternatively
-od <- read_itch(file, "orders")
+od <- read_itch(file, "orders", quiet = TRUE)
 
-ll <- read_itch(file, c("orders", "trades", "modifications"))
+ll <- read_itch(file, c("orders", "trades"), quiet = TRUE)
 
-str(od)
-str(tr)
-str(md)
-str(ll)
+od
+tr
+str(ll, max.level = 1)
 
-# additional options:
-
-# turn off feedback
-od <- read_orders(file, quiet = TRUE)
+## additional options:
 
 # take only subset of messages
 od <- read_orders(file, skip = 3, n_max = 10)
 
 # a message count can be provided for slightly faster reads
-msg_count <- count_messages(file)
+msg_count <- count_messages(file, quiet = TRUE)
 od <- read_orders(file, n_max = msg_count)
 
+## .gz archive functionality
 # .gz archives will be automatically unzipped
 gz_file <- system.file("extdata", "ex20101224.TEST_ITCH_50.gz", package = "RITCH")
 od <- read_orders(gz_file)
@@ -285,55 +286,82 @@ od <- read_orders(gz_file)
 od <- read_orders(gz_file, force_gunzip = TRUE, force_cleanup = TRUE)
 
 ## read_itch()
-read_itch(file, "orders")
-read_itch(file, c("orders", "trades", "modifications"))
+otm <- read_itch(file, c("orders", "trades"), quiet = TRUE)
+str(otm, max.level = 1)
 
 ## read_system_events()
-read_system_events(file)
-read_system_events(file, add_descriptions = TRUE)
+se <- read_system_events(file, add_descriptions = TRUE, quiet = TRUE)
+se
 
 ## read_stock_directory()
-read_stock_directory(file)
-read_stock_directory(file, add_descriptions = TRUE)
+sd <- read_stock_directory(file, add_descriptions = TRUE, quiet = TRUE)
+sd
 
 ## read_trading_status()
-read_trading_status(file)
-read_trading_status(file, add_descriptions = TRUE)
+ts <- read_trading_status(file, add_descriptions = TRUE, quiet = TRUE)
+ts
 
 ## read_reg_sho()
-read_reg_sho(file)
-read_reg_sho(file, add_descriptions = TRUE)
+\dontrun{
+# note the example file has no reg SHO messages
+rs <- read_reg_sho(file, add_descriptions = TRUE, quiet = TRUE)
+rs
+}
 
 ## read_market_participant_states()
-read_market_participant_states(file)
-read_market_participant_states(file, add_descriptions = TRUE)
+\dontrun{
+# note the example file has no market participant states
+mps <- read_market_participant_states(file, add_descriptions = TRUE,
+                                      quiet = TRUE)
+mps
+}
 
 ## read_mwcb()
-read_mwcb(file)
+\dontrun{
+# note the example file has no circuit breakers messages
+mwcb <- read_mwcb(file, quiet = TRUE)
+mwcb
+}
 
 ## read_ipo()
-read_ipo(file)
-read_ipo(file, add_descriptions = TRUE)
+\dontrun{
+# note the example file has no IPOs
+ipo <- read_ipo(file, add_descriptions = TRUE, quiet = TRUE)
+ipo
+}
 
 ## read_luld()
-read_luld(file)
+\dontrun{
+# note the example file has no LULD messages
+luld <- read_luld(file, quiet = TRUE)
+luld
+}
 
 ## read_orders()
-read_orders(file)
+od <- read_orders(file, quiet = TRUE)
+od
 
 ## read_modifications()
-read_modifications(file)
+mod <- read_modifications(file, quiet = TRUE)
+mod
 
 ## read_trades()
-read_trades(file)
+tr <- read_trades(file, quiet = TRUE)
+tr
 
 ## read_noii()
-read_noii(file)
-read_noii(file, add_descriptions = TRUE)
+\dontrun{
+# note the example file has no NOII messages
+noii <- read_noii(file, add_descriptions = TRUE, quiet = TRUE)
+noii
+}
 
 ## read_rpii()
-read_rpii(file)
-read_rpii(file, add_descriptions = TRUE)
+\dontrun{
+# note the example file has no RPII messages
+rpii <- read_rpii(file, add_descriptions = TRUE, quiet = TRUE)
+rpii
+}
 }
 \references{
 \url{https://www.nasdaqtrader.com/content/technicalsupport/specifications/dataproducts/NQTVITCHspecification.pdf}

@@ -75,7 +75,9 @@
 #' @param add_meta if TRUE, the date and exchange information of the file are added, defaults to TRUE
 #' @param force_gunzip only applies if the input file is a gz-archive and a file with the same (gunzipped) name already exists.
 #'        if set to TRUE, the existing file is overwritten. Default value is FALSE
-#' @param force_cleanup only applies if the input file is a gz-archive If force_cleanup=TRUE, the gunzipped raw file will be deleted afterwards.
+#' @param force_cleanup only applies if the input file is a gz-archive.
+#'   If force_cleanup=TRUE, the gunzipped raw file will be deleted afterwards.
+#'   Only applies when the gunzipped raw file did not exist before.
 #' @param ... Additional arguments passed to `read_itch`
 #' @param add_descriptions add longer descriptions to shortened variables.
 #' The added information is taken from the official ITCH documentation
@@ -90,33 +92,32 @@
 #' @return a data.table containing the messages
 #'
 #' @examples
+#' \dontshow{
+#' data.table::setDTthreads(2)
+#' }
 #' file <- system.file("extdata", "ex20101224.TEST_ITCH_50", package = "RITCH")
-#' od <- read_orders(file)
-#' tr <- read_trades(file)
-#' md <- read_modifications(file)
+#' od <- read_orders(file, quiet = FALSE) # note quiet = FALSE is the default
+#' tr <- read_trades(file, quiet = TRUE)
 #'
 #' ## Alternatively
-#' od <- read_itch(file, "orders")
+#' od <- read_itch(file, "orders", quiet = TRUE)
 #'
-#' ll <- read_itch(file, c("orders", "trades", "modifications"))
+#' ll <- read_itch(file, c("orders", "trades"), quiet = TRUE)
 #'
-#' str(od)
-#' str(tr)
-#' str(md)
-#' str(ll)
+#' od
+#' tr
+#' str(ll, max.level = 1)
 #'
-#' # additional options:
-#'
-#' # turn off feedback
-#' od <- read_orders(file, quiet = TRUE)
+#' ## additional options:
 #'
 #' # take only subset of messages
 #' od <- read_orders(file, skip = 3, n_max = 10)
 #'
 #' # a message count can be provided for slightly faster reads
-#' msg_count <- count_messages(file)
+#' msg_count <- count_messages(file, quiet = TRUE)
 #' od <- read_orders(file, n_max = msg_count)
 #'
+#' ## .gz archive functionality
 #' # .gz archives will be automatically unzipped
 #' gz_file <- system.file("extdata", "ex20101224.TEST_ITCH_50.gz", package = "RITCH")
 #' od <- read_orders(gz_file)
@@ -133,8 +134,8 @@ NULL
 #' @examples
 #'
 #' ## read_itch()
-#' read_itch(file, "orders")
-#' read_itch(file, c("orders", "trades", "modifications"))
+#' otm <- read_itch(file, c("orders", "trades"), quiet = TRUE)
+#' str(otm, max.level = 1)
 read_itch <- function(file, filter_msg_class = NA,
                       skip = 0, n_max = -1,
                       filter_msg_type = NA_character_,
@@ -143,8 +144,11 @@ read_itch <- function(file, filter_msg_class = NA,
                       max_timestamp = bit64::as.integer64(NA),
                       filter_stock = NA_character_, stock_directory = NA,
                       buffer_size = -1, quiet = FALSE, add_meta = TRUE,
-                      force_gunzip = FALSE, force_cleanup = FALSE) {
+                      force_gunzip = FALSE, force_cleanup = TRUE) {
   t0 <- Sys.time()
+  if (!file.exists(file))
+    stop(sprintf("File '%s' not found!", file))
+
   msg_classes <- list(
     "system_events" = "S",
     "stock_directory" = "R",
@@ -221,6 +225,8 @@ read_itch <- function(file, filter_msg_class = NA,
   filedate <- get_date_from_filename(file)
 
   orig_file <- file
+  # only needed for gz files; gz files are not deleted when the raw file already existed
+  raw_file_existed <- file.exists(basename(gsub("\\.gz$", "", file)))
   file <- check_and_gunzip(file, buffer_size, force_gunzip, quiet)
 
   res_raw <- read_itch_impl(filter_msg_class, file, start, end,
@@ -268,9 +274,9 @@ read_itch <- function(file, filter_msg_class = NA,
   report_end(t0, quiet, orig_file)
 
   # if the file was gzipped and the force_cleanup=TRUE, delete unzipped file
-  if (grepl("\\.gz$", orig_file) && force_cleanup) {
+  if (grepl("\\.gz$", orig_file) && force_cleanup && !raw_file_existed) {
     if (!quiet) cat(sprintf("[Cleanup]    Removing file '%s'\n", file))
-    unlink(gsub("\\.gz$", "", file))
+    unlink(basename(gsub("\\.gz$", "", file)))
   }
   return(res)
 }
@@ -285,8 +291,8 @@ read_itch <- function(file, filter_msg_class = NA,
 #' @examples
 #'
 #' ## read_system_events()
-#' read_system_events(file)
-#' read_system_events(file, add_descriptions = TRUE)
+#' se <- read_system_events(file, add_descriptions = TRUE, quiet = TRUE)
+#' se
 read_system_events <- function(file, ..., add_descriptions = FALSE) {
   dots <- list(...)
   dots$file <- file
@@ -323,8 +329,8 @@ read_system_events <- function(file, ..., add_descriptions = FALSE) {
 #' @examples
 #'
 #' ## read_stock_directory()
-#' read_stock_directory(file)
-#' read_stock_directory(file, add_descriptions = TRUE)
+#' sd <- read_stock_directory(file, add_descriptions = TRUE, quiet = TRUE)
+#' sd
 read_stock_directory <- function(file, ..., add_descriptions = FALSE) {
   dots <- list(...)
   dots$file <- file
@@ -386,8 +392,8 @@ read_stock_directory <- function(file, ..., add_descriptions = FALSE) {
 #' @examples
 #'
 #' ## read_trading_status()
-#' read_trading_status(file)
-#' read_trading_status(file, add_descriptions = TRUE)
+#' ts <- read_trading_status(file, add_descriptions = TRUE, quiet = TRUE)
+#' ts
 read_trading_status <- function(file, ..., add_descriptions = FALSE) {
   dots <- list(...)
   dots$file <- file
@@ -428,8 +434,11 @@ read_trading_status <- function(file, ..., add_descriptions = FALSE) {
 #' @examples
 #'
 #' ## read_reg_sho()
-#' read_reg_sho(file)
-#' read_reg_sho(file, add_descriptions = TRUE)
+#' \dontrun{
+#' # note the example file has no reg SHO messages
+#' rs <- read_reg_sho(file, add_descriptions = TRUE, quiet = TRUE)
+#' rs
+#' }
 read_reg_sho <- function(file, ..., add_descriptions = FALSE) {
   dots <- list(...)
   dots$file <- file
@@ -464,8 +473,12 @@ read_reg_sho <- function(file, ..., add_descriptions = FALSE) {
 #' @examples
 #'
 #' ## read_market_participant_states()
-#' read_market_participant_states(file)
-#' read_market_participant_states(file, add_descriptions = TRUE)
+#' \dontrun{
+#' # note the example file has no market participant states
+#' mps <- read_market_participant_states(file, add_descriptions = TRUE,
+#'                                       quiet = TRUE)
+#' mps
+#' }
 read_market_participant_states <- function(file, ..., add_descriptions = FALSE) {
   dots <- list(...)
   dots$file <- file
@@ -503,7 +516,11 @@ read_market_participant_states <- function(file, ..., add_descriptions = FALSE) 
 #' @examples
 #'
 #' ## read_mwcb()
-#' read_mwcb(file)
+#' \dontrun{
+#' # note the example file has no circuit breakers messages
+#' mwcb <- read_mwcb(file, quiet = TRUE)
+#' mwcb
+#' }
 read_mwcb <- function(file, ...) {
   dots <- list(...)
   dots$file <- file
@@ -525,8 +542,11 @@ read_mwcb <- function(file, ...) {
 #' @examples
 #'
 #' ## read_ipo()
-#' read_ipo(file)
-#' read_ipo(file, add_descriptions = TRUE)
+#' \dontrun{
+#' # note the example file has no IPOs
+#' ipo <- read_ipo(file, add_descriptions = TRUE, quiet = TRUE)
+#' ipo
+#' }
 read_ipo <- function(file, ..., add_descriptions = FALSE) {
   dots <- list(...)
   dots$file <- file
@@ -559,7 +579,11 @@ read_ipo <- function(file, ..., add_descriptions = FALSE) {
 #' @examples
 #'
 #' ## read_luld()
-#' read_luld(file)
+#' \dontrun{
+#' # note the example file has no LULD messages
+#' luld <- read_luld(file, quiet = TRUE)
+#' luld
+#' }
 read_luld <- function(file, ...) {
   dots <- list(...)
   dots$file <- file
@@ -575,7 +599,8 @@ read_luld <- function(file, ...) {
 #' @examples
 #'
 #' ## read_orders()
-#' read_orders(file)
+#' od <- read_orders(file, quiet = TRUE)
+#' od
 read_orders <- function(file, ...) {
   dots <- list(...)
   dots$file <- file
@@ -592,7 +617,8 @@ read_orders <- function(file, ...) {
 #' @examples
 #'
 #' ## read_modifications()
-#' read_modifications(file)
+#' mod <- read_modifications(file, quiet = TRUE)
+#' mod
 read_modifications <- function(file, ...) {
   dots <- list(...)
   dots$file <- file
@@ -608,7 +634,8 @@ read_modifications <- function(file, ...) {
 #' @examples
 #'
 #' ## read_trades()
-#' read_trades(file)
+#' tr <- read_trades(file, quiet = TRUE)
+#' tr
 read_trades <- function(file, ...) {
   dots <- list(...)
   dots$file <- file
@@ -625,8 +652,11 @@ read_trades <- function(file, ...) {
 #' @examples
 #'
 #' ## read_noii()
-#' read_noii(file)
-#' read_noii(file, add_descriptions = TRUE)
+#' \dontrun{
+#' # note the example file has no NOII messages
+#' noii <- read_noii(file, add_descriptions = TRUE, quiet = TRUE)
+#' noii
+#' }
 read_noii <- function(file, ..., add_descriptions = FALSE) {
   dots <- list(...)
   dots$file <- file
@@ -687,8 +717,11 @@ read_noii <- function(file, ..., add_descriptions = FALSE) {
 #' @examples
 #'
 #' ## read_rpii()
-#' read_rpii(file)
-#' read_rpii(file, add_descriptions = TRUE)
+#' \dontrun{
+#' # note the example file has no RPII messages
+#' rpii <- read_rpii(file, add_descriptions = TRUE, quiet = TRUE)
+#' rpii
+#' }
 read_rpii <- function(file, ..., add_descriptions = FALSE) {
   dots <- list(...)
   dots$file <- file
