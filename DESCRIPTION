@@ -1,7 +1,7 @@
 Package: RITCH
 Type: Package
 Title: R Parser for the ITCH-Protocol
-Version: 0.1.25
+Version: 0.1.26
 Authors@R: c(
     person("David", "Zimmermann-Kollenda", , "david_j_zimmermann@hotmail.com", role = c("aut", "cre"))
   )
@@ -17,8 +17,8 @@ Encoding: UTF-8
 RoxygenNote: 7.2.3
 Suggests: tinytest
 NeedsCompilation: yes
-Packaged: 2024-01-13 11:15:52 UTC; david
+Packaged: 2024-01-15 14:19:07 UTC; david
 Author: David Zimmermann-Kollenda [aut, cre]
 Maintainer: David Zimmermann-Kollenda <david_j_zimmermann@hotmail.com>
 Repository: CRAN
-Date/Publication: 2024-01-13 13:10:02 UTC
+Date/Publication: 2024-01-15 15:10:07 UTC
