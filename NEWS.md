@@ -1,3 +1,21 @@
+# RITCH 0.1.30
+
+* fix CRAN comments
+* replace `\dontrun{}` examples with executable examples or `\donttest{}`
+* avoid writing to user working directory by default in write-related helpers and examples/tests (`download_sample_file()`, `download_stock_directory(cache = TRUE)`, `gzip_file()`)
+
+# RITCH 0.1.29
+
+* fix failing CRAN NOTEs (URL + unneeded files)
+
+# RITCH 0.1.28
+
+* fix test for some platforms to avoid CRAN archiving
+
+# RITCH 0.1.27
+
+* fix bug where no messages would be reported for larger files
+
 # RITCH 0.1.26
 
 * fix bug where gz functionality would write to user library or current directory

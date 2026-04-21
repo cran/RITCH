@@ -9,7 +9,8 @@
 #'
 #' @param infile the file to be zipped or unzipped
 #' @param outfile the resulting zipped or unzipped file
-#' @param buffer_size the size of the buffer to read in at once, default is 4 times the file.size (max 2Gb).
+#' @param buffer_size the size of the buffer to read in at once,
+#' default is 4 times the file.size (max 2Gb).
 #'
 #' @details Functions are
 #'
@@ -28,7 +29,8 @@ NULL
 #'
 #' @examples
 #' # uncompress file
-#' (outfile <- gunzip_file(gzfile, "tmp"))
+#' tmp_raw <- tempfile(pattern = "ritch_raw_", tmpdir = tempdir())
+#' (outfile <- gunzip_file(gzfile, tmp_raw))
 #' file.info(outfile)
 #' unlink(outfile)
 #'
@@ -39,7 +41,7 @@ gunzip_file <- function(infile, outfile = gsub("\\.gz$", "", infile),
   if (file.exists(outfile)) unlink(outfile)
 
   gunzip_file_impl(infile, outfile, buffer_size)
-  return(invisible(outfile))
+  invisible(outfile)
 }
 
 #' @rdname gz_functions
@@ -49,9 +51,11 @@ gunzip_file <- function(infile, outfile = gsub("\\.gz$", "", infile),
 #'
 #' @examples
 #' # compress file
-#' (outfile <- gzip_file(file))
+#' tmp_raw <- tempfile(pattern = "ritch_raw_", tmpdir = tempdir())
+#' file.copy(file, tmp_raw)
+#' (outfile <- gzip_file(tmp_raw))
 #' file.info(outfile)
-#' unlink(outfile)
+#' unlink(c(tmp_raw, outfile))
 gzip_file <- function(infile,
                       outfile = NA,
                       buffer_size = min(4 * file.size(infile), 2e9)) {
@@ -59,12 +63,7 @@ gzip_file <- function(infile,
   if (!file.exists(infile)) stop(sprintf("File '%s' not found!", infile))
 
   if (is.na(outfile)) {
-    outfile <- ifelse(grepl("\\.gz$", infile),
-                      infile,
-                      paste0(infile, ".gz"))
-    # remove path
-    xx <- strsplit(outfile, "\\\\|/")[[1]]
-    outfile <- xx[length(xx)]
+    outfile <- if (grepl("\\.gz$", infile)) infile else paste0(infile, ".gz")
   }
   if (file.exists(outfile)) unlink(outfile)
 
@@ -74,7 +73,7 @@ gzip_file <- function(infile,
   }
 
   gzip_file_impl(infile, outfile, buffer_size)
-  return(invisible(outfile))
+  invisible(outfile)
 }
 
 
@@ -86,18 +85,30 @@ check_and_gunzip <- function(file, dir = dirname(file), buffer_size, force_gunzi
   if (!grepl("\\.gz$", file)) return(file)
 
   outfile <- file.path(dir, basename(gsub("\\.gz$", "", file)))
-  # check if the raw-file at target directory already exists, if so use this (unless force_gunzip = TRUE)
+  # check if the raw-file at target directory already exists, if so use this
+  # (unless force_gunzip = TRUE)
   if (file.exists(outfile) && !quiet && !force_gunzip) {
-    cat(sprintf("[INFO] Unzipped file '%s' already found, using that (overwrite with force_gunzip = TRUE)\n",
-                outfile))
+    cat(sprintf(
+      paste(
+        "[INFO] Unzipped file '%s' already found, using that (overwrite with",
+        "force_gunzip = TRUE)\n"
+      ),
+      outfile
+    ))
     return(outfile)
   }
 
-  # check if the raw-file at current directory already exists, if so use this (unless force_gunzip = TRUE)
+  # check if the raw-file at current directory already exists, if so use this
+  # (unless force_gunzip = TRUE)
   if (file.exists(outfile) && !force_gunzip) {
     if (!quiet)
-      cat(sprintf("[INFO] Unzipped file '%s' already found, using that (overwrite with force_gunzip = TRUE)\n",
-                  outfile))
+      cat(sprintf(
+        paste(
+          "[INFO] Unzipped file '%s' already found, using that (overwrite with",
+          "force_gunzip = TRUE)\n"
+        ),
+        outfile
+      ))
     return(outfile)
   } else {
     # if the unzipped file doesnt exist or the force_gunzip flag is set, unzip file
@@ -107,5 +118,5 @@ check_and_gunzip <- function(file, dir = dirname(file), buffer_size, force_gunzi
 
     gunzip_file(file, outfile, buffer_size)
   }
-  return(outfile)
+  outfile
 }

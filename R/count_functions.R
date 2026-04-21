@@ -6,13 +6,16 @@
 #' @param x a file or a data.table containing the message types and the counts,
 #' as outputted by `count_messages`
 #' @param add_meta_data if the meta-data of the messages should be added, defaults to FALSE
-#' @param buffer_size the size of the buffer in bytes, defaults to 1e8 (100 MB), if you have a large amount of RAM, 1e9 (1GB) might be faster
+#' @param buffer_size the size of the buffer in bytes, defaults to 1e8 (100 MB),
+#' if you have a large amount of RAM, 1e9 (1GB) might be faster
 #' @param quiet if TRUE, the status messages are supressed, defaults to FALSE
-#' @param force_gunzip only applies if file is a gz-file and a file with the same (gunzipped) name already exists.
-#'        if set to TRUE, the existing file is overwritten. Default value is FALSE
+#' @param force_gunzip only applies if file is a gz-file and a file with the same (gunzipped)
+#' name already exists. If set to TRUE, the existing file is overwritten.
+#' Default value is FALSE
 #' @param gz_dir a directory where the gz archive is extracted to.
-#'        Only applies if file is a gz archive. Default is [tempdir()].    
-#' @param force_cleanup only applies if file is a gz-file. If force_cleanup=TRUE, the gunzipped raw file will be deleted afterwards.
+#' Only applies if file is a gz archive. Default is [tempdir()].
+#' @param force_cleanup only applies if file is a gz-file. If force_cleanup=TRUE,
+#' the gunzipped raw file will be deleted afterwards.
 #' @return a data.table containing the message-type and their counts for `count_messages`
 #'  or an integer value for the other functions.
 #' @export
@@ -48,7 +51,8 @@ count_messages <- function(file, add_meta_data = FALSE, buffer_size = -1,
 
   orig_file <- file
   # only needed for gz files; gz files are not deleted when the raw file already existed
-  raw_file_existed <- file.exists(basename(gsub("\\.gz$", "", file)))
+  raw_file <- file.path(gz_dir, basename(gsub("\\.gz$", "", file)))
+  raw_file_existed <- file.exists(raw_file)
   file <- check_and_gunzip(file, gz_dir, buffer_size, force_gunzip, quiet)
   df <- count_messages_impl(file, buffer_size, quiet)
 
@@ -62,18 +66,18 @@ count_messages <- function(file, add_meta_data = FALSE, buffer_size = -1,
   report_end(t0, quiet, orig_file)
 
   if (grepl("\\.gz$", orig_file) && force_cleanup && !raw_file_existed) {
-    unlink(basename(gsub("\\.gz$", "", file)))
+    unlink(file)
     if (!quiet) cat(sprintf("[Cleanup]    Removing file '%s'\n", file))
   }
 
-  return(df)
+  df
 }
 
 #' Returns the message class data for the message types
 #'
 #' All information is handled according to the official ITCH 5.0
 #' documentation as found here:
-#' <http://www.nasdaqtrader.com/content/technicalsupport/specifications/dataproducts/NQTVITCHSpecification.pdf>
+#' <https://www.nasdaqtrader.com/content/technicalsupport/specifications/dataproducts/NQTVITCHSpecification.pdf>
 #'
 #' - `msg_type` the type of the message
 #' - `msg_class` the group the message belongs to
@@ -237,7 +241,7 @@ count_reg_sho <- function(x) {
 #'
 #' @examples
 #' count_market_participant_states(msg_count)
-count_market_participant_states <- function(x) {
+count_market_participant_states <- function(x) { # nolint
   if (is.character(x)) x <- count_messages(x, quiet = TRUE)
   types <- c("L")
   count_internal(x, types)

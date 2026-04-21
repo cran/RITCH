@@ -125,7 +125,7 @@ filter_itch <- function(infile, outfile,
   end <- max(skip + n_max - 1, -1)
   if (end < start) end <- -1
 
-  if (!quiet && (start != 0 | end != -1))
+  if (!quiet && (start != 0 || end != -1))
     cat(sprintf("[Filter]     skip: %i n_max: %i (%i - %i)\n",
                 skip, n_max, start + 1, end + 1))
 
@@ -154,12 +154,12 @@ filter_itch <- function(infile, outfile,
   # Set the default value of the buffer size
   buffer_size <- check_buffer_size(buffer_size, infile)
 
-  filedate <- get_date_from_filename(infile)
-
   orig_infile <- infile
   # only needed for gz files; gz files are not deleted when the raw file already existed
-  raw_file_existed <- file.exists(basename(gsub("\\.gz$", "", infile)))
-  infile <- check_and_gunzip(infile, dirname(outfile), buffer_size, force_gunzip, quiet)
+  gunzip_dir <- dirname(outfile)
+  raw_infile <- file.path(gunzip_dir, basename(gsub("\\.gz$", "", infile)))
+  raw_file_existed <- file.exists(raw_infile)
+  infile <- check_and_gunzip(infile, gunzip_dir, buffer_size, force_gunzip, quiet)
 
   filter_itch_impl(infile, outfile, start, end,
                    filter_msg_type, filter_stock_locate,
@@ -174,15 +174,15 @@ filter_itch <- function(infile, outfile,
     unlink(of) # delete the temporary file
   }
 
-  a <- gc()
+  a <- gc() # nolint
 
   report_end(t0, quiet, infile)
 
   # if the file was gzipped and the force_cleanup=TRUE, delete unzipped file
   if (grepl("\\.gz$", orig_infile) && force_cleanup && !raw_file_existed) {
     if (!quiet) cat(sprintf("[Cleanup]    Removing file '%s'\n", infile))
-    unlink(basename(gsub("\\.gz$", "", infile)))
+    unlink(infile)
   }
 
-  return(invisible(outfile))
+  invisible(outfile)
 }

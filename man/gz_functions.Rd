@@ -23,7 +23,8 @@ gzip_file(
 
 \item{outfile}{the resulting zipped or unzipped file}
 
-\item{buffer_size}{the size of the buffer to read in at once, default is 4 times the file.size (max 2Gb).}
+\item{buffer_size}{the size of the buffer to read in at once,
+default is 4 times the file.size (max 2Gb).}
 }
 \value{
 The filename of the unzipped file, invisibly
@@ -45,12 +46,15 @@ gzfile <- system.file("extdata", "ex20101224.TEST_ITCH_50.gz", package = "RITCH"
 file   <- system.file("extdata", "ex20101224.TEST_ITCH_50", package = "RITCH")
 
 # uncompress file
-(outfile <- gunzip_file(gzfile, "tmp"))
+tmp_raw <- tempfile(pattern = "ritch_raw_", tmpdir = tempdir())
+(outfile <- gunzip_file(gzfile, tmp_raw))
 file.info(outfile)
 unlink(outfile)
 
 # compress file
-(outfile <- gzip_file(file))
+tmp_raw <- tempfile(pattern = "ritch_raw_", tmpdir = tempdir())
+file.copy(file, tmp_raw)
+(outfile <- gzip_file(tmp_raw))
 file.info(outfile)
-unlink(outfile)
+unlink(c(tmp_raw, outfile))
 }
